@@ -1,0 +1,176 @@
+{
+ "pred": "predictions_samples.json",
+ "team": "wiut-cv-track",
+ "format_valid": true,
+ "format_errors": [],
+ "format_warnings": [
+  "videos['jaywalking_visual_C3905.mp4']: no risk curve (Part B scores 0 for this video)",
+  "videos['stopped_vehicle_visual_proxy.mp4']: no risk curve (Part B scores 0 for this video)",
+  "videos['vid1.mp4']: no risk curve (Part B scores 0 for this video)",
+  "videos['vid2.mp4']: no risk curve (Part B scores 0 for this video)",
+  "videos['vid3.mp4']: no risk curve (Part B scores 0 for this video)",
+  "videos['vid4.mp4']: no risk curve (Part B scores 0 for this video)"
+ ],
+ "videos": 6,
+ "events_total": 0,
+ "events_by_class": {},
+ "classes_with_zero_predictions": [
+  "accident",
+  "near_miss",
+  "red_light",
+  "wrong_way",
+  "illegal_u_turn",
+  "stopped_vehicle",
+  "jaywalking",
+  "failure_to_yield",
+  "illegal_turn",
+  "solid_line_crossing",
+  "stop_line",
+  "congestion",
+  "road_obstacle",
+  "fire_smoke"
+ ],
+ "per_video": [
+  {
+   "video": "jaywalking_visual_C3905.mp4",
+   "duration": 11.91,
+   "budget_sec": 35.7,
+   "part_a_sec": 23.3,
+   "part_b_sec": 49.0,
+   "total_sec": 72.3,
+   "budget_used_pct": 202.5,
+   "events": 0,
+   "events_by_class": {},
+   "risk_samples": 0,
+   "risk_median": null,
+   "risk_max": null,
+   "risk_mean": null,
+   "frac_ge_theta": null,
+   "alarm_runs": 0,
+   "alarm_starts": [],
+   "harness_problems": [
+    "over time budget (72.3s > 36s): scored as empty"
+   ]
+  },
+  {
+   "video": "stopped_vehicle_visual_proxy.mp4",
+   "duration": 0.5,
+   "budget_sec": 1.5,
+   "part_a_sec": 1.0,
+   "part_b_sec": 2.5,
+   "total_sec": 3.5,
+   "budget_used_pct": 233.3,
+   "events": 0,
+   "events_by_class": {},
+   "risk_samples": 0,
+   "risk_median": null,
+   "risk_max": null,
+   "risk_mean": null,
+   "frac_ge_theta": null,
+   "alarm_runs": 0,
+   "alarm_starts": [],
+   "harness_problems": [
+    "over time budget (3.5s > 2s): scored as empty"
+   ]
+  },
+  {
+   "video": "vid1.mp4",
+   "duration": 12.0,
+   "budget_sec": 36.0,
+   "part_a_sec": 29.5,
+   "part_b_sec": 24.7,
+   "total_sec": 54.1,
+   "budget_used_pct": 150.3,
+   "events": 0,
+   "events_by_class": {},
+   "risk_samples": 0,
+   "risk_median": null,
+   "risk_max": null,
+   "risk_mean": null,
+   "frac_ge_theta": null,
+   "alarm_runs": 0,
+   "alarm_starts": [],
+   "harness_problems": [
+    "over time budget (54.1s > 36s): scored as empty"
+   ]
+  },
+  {
+   "video": "vid2.mp4",
+   "duration": 12.0,
+   "budget_sec": 36.0,
+   "part_a_sec": 33.3,
+   "part_b_sec": 27.2,
+   "total_sec": 60.5,
+   "budget_used_pct": 168.1,
+   "events": 0,
+   "events_by_class": {},
+   "risk_samples": 0,
+   "risk_median": null,
+   "risk_max": null,
+   "risk_mean": null,
+   "frac_ge_theta": null,
+   "alarm_runs": 0,
+   "alarm_starts": [],
+   "harness_problems": [
+    "over time budget (60.5s > 36s): scored as empty"
+   ]
+  },
+  {
+   "video": "vid3.mp4",
+   "duration": 12.0,
+   "budget_sec": 36.0,
+   "part_a_sec": 31.1,
+   "part_b_sec": 25.2,
+   "total_sec": 56.2,
+   "budget_used_pct": 156.1,
+   "events": 0,
+   "events_by_class": {},
+   "risk_samples": 0,
+   "risk_median": null,
+   "risk_max": null,
+   "risk_mean": null,
+   "frac_ge_theta": null,
+   "alarm_runs": 0,
+   "alarm_starts": [],
+   "harness_problems": [
+    "over time budget (56.2s > 36s): scored as empty"
+   ]
+  },
+  {
+   "video": "vid4.mp4",
+   "duration": 10.64,
+   "budget_sec": 31.9,
+   "part_a_sec": 21.7,
+   "part_b_sec": 47.9,
+   "total_sec": 69.6,
+   "budget_used_pct": 218.2,
+   "events": 0,
+   "events_by_class": {},
+   "risk_samples": 0,
+   "risk_median": null,
+   "risk_max": null,
+   "risk_mean": null,
+   "frac_ge_theta": null,
+   "alarm_runs": 0,
+   "alarm_starts": [],
+   "harness_problems": [
+    "over time budget (69.6s > 32s): scored as empty"
+   ]
+  }
+ ],
+ "risk_summary": [],
+ "totals": {
+  "part_a_sec": 139.9,
+  "part_b_sec": 176.5,
+  "total_sec": 316.2,
+  "budget_sec": 177.1,
+  "videos_over_budget": [
+   "jaywalking_visual_C3905.mp4",
+   "stopped_vehicle_visual_proxy.mp4",
+   "vid1.mp4",
+   "vid2.mp4",
+   "vid3.mp4",
+   "vid4.mp4"
+  ]
+ }
+}

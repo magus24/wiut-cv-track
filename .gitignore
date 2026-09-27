@@ -1,0 +1,42 @@
+# Python bytecode / caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+__MACOSX/
+*.log
+track_verify_out.txt
+
+# Stray empty directory produced by a driver probe on Windows
+NVIDIA Corporation/
+
+# Dev-set review artifacts. Regenerate with the documented commands instead of
+# versioning megabytes of contact sheets and overlay renders:
+#   python tools/make_previews.py --video <clip> --out-dir previews/w39 --start 38 --end 42 --every 0.5
+#   python tools/scan_motion.py  --video <clip> --out-dir reports/scan
+previews/
+labels_preview/
+debug/*.png
+debug/*.csv
+debug/*.mp4
+
+# Weights.
+#
+# The 109 MB YOLO11x checkpoint IS COMMITTED ON PURPOSE. Grading is offline, so
+# weights/download.sh cannot be relied on to run at scoring time, and a missing
+# weight file is a silent total loss: every frame returns zero detections, every
+# video is submitted with an empty event list, Score_A = Score_B = 0, and
+# `evaluate.py --validate-only` still reports VALID. Shipping the file makes the
+# outcome correct whether the submission travels as a git clone or as a copy of
+# the directory. 109 MB is far inside the 5 GB cap.
+#
+# No rule above matches *.pt, so the file is tracked by default; the explicit
+# negation below keeps that true even if a blanket *.pt rule is added later.
+# (A pattern containing an inner slash is anchored to this file's directory,
+# which is why the negation is written with an explicit weights/ prefix.)
+!weights/yolo11x.pt

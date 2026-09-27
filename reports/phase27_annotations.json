@@ -1,0 +1,64 @@
+{
+  "_readme": [
+    "PHASE 27 dev-set annotation sheet. This is the ONLY file a human edits.",
+    "Fill `events` with what the footage visibly supports, then run:",
+    "  python tools/build_dev_gt.py --annotations reports/phase27_annotations.json --out my_labels_dev.json",
+    "which emits the official evaluate.py GT schema and refuses anything not marked confirmed.",
+    "",
+    "RULES (from HACKATHON_CONTEXT.md section '14 классов' + the phase brief):",
+    "  * start_sec = first time the event is clearly active; end_sec = last such time.",
+    "  * seconds, never frame numbers.",
+    "  * label ONLY what is visible. If you cannot tell, use status 'uncertain' and say why.",
+    "  * never copy a number out of a detector output, a debug CSV, or labels_draft/.",
+    "  * simultaneous same-class events = ONE segment covering both.",
+    "  * same-class segments must not overlap.",
+    "  * do not invent events to fill a class; an absent class is a valid, informative label.",
+    "",
+    "STATUS VALUES: confirmed | uncertain | rejected",
+    "  confirmed -> becomes ground truth.",
+    "  uncertain  -> counted and listed, never scored. Explain in `note`.",
+    "  rejected   -> you looked and decided it is not that class. Explain in `note`."
+  ],
+  "_class_definitions": {
+    "accident": "contact of two+ road users; start = first visible contact, end = when they stop/leave",
+    "near_miss": "hard braking or an evasive swerve that avoids contact",
+    "red_light": "crossing the stop line on red; start = the moment the front crosses the line",
+    "wrong_way": "travelling against the direction of the lane",
+    "illegal_u_turn": "U-turn where it is prohibited",
+    "stopped_vehicle": "stationary on the carriageway >= 10 s, not queued at a signal",
+    "jaywalking": "pedestrian on the carriageway outside a crossing",
+    "failure_to_yield": "vehicle going through the crossing while a pedestrian is on it",
+    "illegal_turn": "turn from the wrong lane or in a prohibited direction",
+    "solid_line_crossing": "crossing a solid road marking",
+    "stop_line": "stopped past the stop line on red without entering the intersection",
+    "congestion": "traffic standing/crawling across all lanes of one direction",
+    "road_obstacle": "debris, animal or a fallen object on the carriageway",
+    "fire_smoke": "visible fire or smoke"
+  },
+  "videos": {
+    "C3896.MP4": {
+      "duration": 340.34,
+      "fps": 29.97,
+      "events": [],
+      "_notes": "340 s of 4K. Sampled sweep + motion-shortlist windows go in review_windows."
+    },
+    "C3897.MP4": {
+      "duration": 317.817,
+      "fps": 29.97,
+      "events": [],
+      "_notes": ""
+    },
+    "C3902.MP4": {
+      "duration": 317.817,
+      "fps": 29.97,
+      "events": [],
+      "_notes": ""
+    },
+    "C3905.MP4": {
+      "duration": 127.627,
+      "fps": 29.97,
+      "events": [],
+      "_notes": "Shortest clip; the natural pilot video."
+    }
+  }
+}

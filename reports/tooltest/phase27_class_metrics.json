@@ -1,0 +1,236 @@
+{
+ "score_a": 0.9074074074074074,
+ "ref_threshold": 0.5,
+ "classes": [
+  "accident",
+  "jaywalking",
+  "near_miss",
+  "red_light",
+  "stopped_vehicle",
+  "wrong_way"
+ ],
+ "summary": [
+  {
+   "class": "accident",
+   "gt": 2,
+   "pred": 2,
+   "tp": 2,
+   "fp": 0,
+   "fn": 0,
+   "f1": {
+    "0.3": 1.0,
+    "0.5": 1.0,
+    "0.7": 1.0
+   },
+   "precision": 1.0,
+   "recall": 1.0,
+   "verdicts": {
+    "TP": 4
+   },
+   "main_error_type": "-"
+  },
+  {
+   "class": "jaywalking",
+   "gt": 1,
+   "pred": 1,
+   "tp": 1,
+   "fp": 0,
+   "fn": 0,
+   "f1": {
+    "0.3": 1.0,
+    "0.5": 1.0,
+    "0.7": 1.0
+   },
+   "precision": 1.0,
+   "recall": 1.0,
+   "verdicts": {
+    "TP": 2
+   },
+   "main_error_type": "-"
+  },
+  {
+   "class": "near_miss",
+   "gt": 1,
+   "pred": 1,
+   "tp": 1,
+   "fp": 0,
+   "fn": 0,
+   "f1": {
+    "0.3": 1.0,
+    "0.5": 1.0,
+    "0.7": 1.0
+   },
+   "precision": 1.0,
+   "recall": 1.0,
+   "verdicts": {
+    "TP": 2
+   },
+   "main_error_type": "-"
+  },
+  {
+   "class": "red_light",
+   "gt": 2,
+   "pred": 2,
+   "tp": 2,
+   "fp": 0,
+   "fn": 0,
+   "f1": {
+    "0.3": 1.0,
+    "0.5": 1.0,
+    "0.7": 1.0
+   },
+   "precision": 1.0,
+   "recall": 1.0,
+   "verdicts": {
+    "TP": 4
+   },
+   "main_error_type": "-"
+  },
+  {
+   "class": "stopped_vehicle",
+   "gt": 1,
+   "pred": 2,
+   "tp": 1,
+   "fp": 1,
+   "fn": 0,
+   "f1": {
+    "0.3": 0.6667,
+    "0.5": 0.6667,
+    "0.7": 0.0
+   },
+   "precision": 0.5,
+   "recall": 1.0,
+   "verdicts": {
+    "FP": 1,
+    "TP": 2
+   },
+   "main_error_type": "FP"
+  },
+  {
+   "class": "wrong_way",
+   "gt": 1,
+   "pred": 1,
+   "tp": 1,
+   "fp": 0,
+   "fn": 0,
+   "f1": {
+    "0.3": 1.0,
+    "0.5": 1.0,
+    "0.7": 1.0
+   },
+   "precision": 1.0,
+   "recall": 1.0,
+   "verdicts": {
+    "TP": 2
+   },
+   "main_error_type": "-"
+  }
+ ],
+ "micro": {
+  "0.3": {
+   "tp": 8,
+   "fp": 1,
+   "fn": 0,
+   "precision": 0.8888888888888888,
+   "recall": 1.0,
+   "f1": 0.9411764705882353
+  },
+  "0.5": {
+   "tp": 8,
+   "fp": 1,
+   "fn": 0,
+   "precision": 0.8888888888888888,
+   "recall": 1.0,
+   "f1": 0.9411764705882353
+  },
+  "0.7": {
+   "tp": 7,
+   "fp": 2,
+   "fn": 1,
+   "precision": 0.7777777777777778,
+   "recall": 0.875,
+   "f1": 0.823529411764706
+  }
+ },
+ "class_agnostic": {
+  "0.3": {
+   "tp": 8,
+   "fp": 1,
+   "fn": 0,
+   "precision": 0.8888888888888888,
+   "recall": 1.0,
+   "f1": 0.9411764705882353
+  },
+  "0.5": {
+   "tp": 8,
+   "fp": 1,
+   "fn": 0,
+   "precision": 0.8888888888888888,
+   "recall": 1.0,
+   "f1": 0.9411764705882353
+  },
+  "0.7": {
+   "tp": 7,
+   "fp": 2,
+   "fn": 1,
+   "precision": 0.7777777777777778,
+   "recall": 0.875,
+   "f1": 0.823529411764706
+  }
+ },
+ "per_video": [
+  {
+   "video": "sample_001.mp4",
+   "gt": 5,
+   "pred": 5,
+   "accident": "1/0/0",
+   "jaywalking": "1/0/0",
+   "near_miss": "1/0/0",
+   "red_light": "1/0/0",
+   "stopped_vehicle": "0/0/0",
+   "wrong_way": "1/0/0"
+  },
+  {
+   "video": "sample_002.mp4",
+   "gt": 3,
+   "pred": 4,
+   "accident": "1/0/0",
+   "jaywalking": "0/0/0",
+   "near_miss": "0/0/0",
+   "red_light": "1/0/0",
+   "stopped_vehicle": "1/1/0",
+   "wrong_way": "0/0/0"
+  }
+ ],
+ "part_b": {
+  "score_b": 0.7600000000000001,
+  "ap": 0.8,
+  "ap_raw": 0.8246913580246914,
+  "positive_rate": 0.12345679012345678,
+  "alarm_precision": 1.0,
+  "alarm_recall": 1.0,
+  "f1_alarm": 1.0,
+  "mtta_sec": 2.0,
+  "n_accidents": 2,
+  "n_alarms": 2,
+  "n_matched": 2,
+  "n_frames_scored": 81,
+  "n_frames_positive": 10,
+  "per_video": {
+   "sample_001.mp4": {
+    "accidents": 1,
+    "alarms": 1,
+    "tta": [
+     2.0
+    ]
+   },
+   "sample_002.mp4": {
+    "accidents": 1,
+    "alarms": 1,
+    "tta": [
+     2.0
+    ]
+   }
+  }
+ }
+}

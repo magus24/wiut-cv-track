@@ -1,0 +1,61 @@
+{
+ "meta": {
+  "video": "C3905.MP4",
+  "fps": 29.97,
+  "n_frames": 3825,
+  "width": 3840,
+  "height": 2160,
+  "duration": 127.627,
+  "stride": 6,
+  "grid": "4x3",
+  "percentile": 90.0,
+  "n_buckets": 128,
+  "n_windows": 4,
+  "motion_p50": 3.7158,
+  "motion_p90": 7.4253,
+  "motion_p99": 8.1574,
+  "n_cut_buckets": 0
+ },
+ "windows": [
+  {
+   "t_start": 39.0,
+   "t_end": 41.0,
+   "length_sec": 2.0,
+   "peak_t": 40.0,
+   "peak_motion": 8.3556,
+   "mean_motion": 7.9745,
+   "top_cell": "r2c3",
+   "cut_frames": 0
+  },
+  {
+   "t_start": 53.0,
+   "t_end": 60.0,
+   "length_sec": 7.0,
+   "peak_t": 54.0,
+   "peak_motion": 8.243,
+   "mean_motion": 7.7682,
+   "top_cell": "r1c1",
+   "cut_frames": 0
+  },
+  {
+   "t_start": 63.0,
+   "t_end": 65.0,
+   "length_sec": 2.0,
+   "peak_t": 63.0,
+   "peak_motion": 7.6952,
+   "mean_motion": 7.6703,
+   "top_cell": "r2c3",
+   "cut_frames": 0
+  },
+  {
+   "t_start": 43.0,
+   "t_end": 45.0,
+   "length_sec": 2.0,
+   "peak_t": 43.0,
+   "peak_motion": 7.5916,
+   "mean_motion": 7.5178,
+   "top_cell": "r2c3",
+   "cut_frames": 0
+  }
+ ]
+}
