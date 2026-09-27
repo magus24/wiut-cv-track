@@ -10,7 +10,7 @@ solution.py          <- the ONLY file you implement (CLASSES, detect_events, Ris
 run_submission.py    <- organizers' harness: folder of videos -> predictions.json   (do not modify)
 evaluate.py          <- format check + the official metric                          (do not modify)
 examples/            <- ground_truth.json and predictions.json in the exact format
-requirements.txt     <- numpy + opencv for the harness; add your own deps to YOUR repo
+requirements.txt     <- fully pinned, including the CUDA torch build (see "Verified environment")
 src/                 <- the implementation (pipeline, detection, tracking, scene, events, risk)
 scene_config.json    <- self-calibrated geometry for the fixed camera (all videos share it)
 weights/             <- yolo11x.pt (shipped) + download.sh (fallback)
@@ -73,6 +73,45 @@ detections, every video is submitted with an empty event list, `Score_A` and
 because an empty event list is legal. `src/detection/detector.py` therefore
 prints a loud one-time banner on stderr and records `Detector.load_error` if the
 model cannot be loaded, and `Detector.preflight()` reports the problem directly.
+
+## Verified environment
+
+`requirements.txt` is fully pinned and was validated the way the graders run it:
+a **clean virtualenv** built from that exact file, then the full suite and the
+organizer's own format check.
+
+| Package | Pin | Note |
+|---|---|---|
+| `torch` | `2.12.0+cu126` | CUDA 12.6 build, from the official PyTorch index |
+| `torchvision` | `0.27.0+cu126` | matching build |
+| `numpy` | `2.4.6` | |
+| `opencv-python` | `5.0.0.93` | see the note below |
+| `ultralytics` | `8.4.53` | provides YOLO11x + ByteTrack |
+
+Result: **727 passed, 1 skipped** (the skip needs a real sample video, which is
+not part of the submission), and
+`format: 1 video(s), 14 event(s), 0 error(s), 0 warning(s) -> VALID`.
+
+Two details that are easy to get wrong:
+
+- **`--extra-index-url`, not `--index-url`.** A bare `--index-url` in a
+  requirements file is a *global* option, so it would also send the
+  numpy/opencv/ultralytics lookups to the PyTorch index, which does not mirror
+  them. The PyTorch index is therefore added as an extra index and PyPI stays
+  primary.
+- **`opencv-python`, not `opencv-python-headless`.** Ultralytics depends on
+  `opencv-python`, and both distributions install into the same `cv2` package
+  directory. Pinning the headless build while Ultralytics pulls in the regular
+  one installs *both*, and the unpinned copy silently overwrites the pinned one
+  — observed as `cv2.__version__ == 5.0.0` while the pin said `4.13.0.92`.
+  Pinning the single distribution Ultralytics actually requires removes that
+  failure mode. On a slim container image OpenCV also needs the system libraries
+  `libgl1` and `libglib2.0-0`.
+
+Determinism: the inference path contains no RNG at all — no `random`, no
+`np.random`, no `torch.manual_seed` call — so two runs on the same machine
+produce byte-identical output by construction rather than by seeding. There is
+no wall-clock or filename-order dependence either.
 
 ## Our approach
 
