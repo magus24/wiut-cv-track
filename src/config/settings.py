@@ -16,7 +16,24 @@ from .budget import read_sec_per_obs as _read_sec_per_obs
 _PKG_ROOT = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
 
-DEFAULT_WEIGHTS = "weights/yolo11x.pt"
+# The weight path is anchored to the PACKAGE root, exactly like
+# SCENE_CONFIG_PATH below, not to the current working directory.
+#
+# This matters because a missing weight file is a silent total loss: every
+# frame yields zero detections, every video is submitted with an empty event
+# list, Score_A and Score_B are both 0, and `evaluate.py --validate-only` still
+# reports VALID. With a CWD-relative path, running the harness from anywhere
+# other than the package root silently missed the shipped 109 MB checkpoint and
+# Ultralytics then tried to fetch it from the network - which cannot work during
+# offline grading. Anchoring to _PKG_ROOT makes the shipped weight load
+# regardless of CWD.
+#
+# The CWD-relative form is kept as a fallback so a tree that deliberately
+# supplies its own ./weights/yolo11x.pt (or a synthetic fixture tree) still
+# works. TCV_WEIGHTS overrides both.
+_PACKAGE_WEIGHTS = os.path.join(_PKG_ROOT, "weights", "yolo11x.pt")
+DEFAULT_WEIGHTS = (_PACKAGE_WEIGHTS if os.path.isfile(_PACKAGE_WEIGHTS)
+                   else "weights/yolo11x.pt")
 SCENE_CONFIG_PATH = os.path.join(_PKG_ROOT, "scene_config.json")
 
 _TRUTHS = {"1", "true", "yes", "on"}
