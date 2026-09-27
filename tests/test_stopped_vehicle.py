@@ -17,7 +17,8 @@ provided MotionState speed (the detector reads MotionEngine outputs, never
 recomputes motion). Frame cadence 0.1 s.
 
 Defaults exercised: stationary_speed_px_s 6, slow_speed_px_s 20,
-min_stationary_duration_sec 8, born_stationary_grace_sec 4,
+min_stationary_duration_sec 10 (the official annotation convention: stationary
+on the carriageway for 10 s or more), born_stationary_grace_sec 4,
 queue_neighbor_radius_px 150, queue_min_vehicle_count 3,
 queue_stationary_ratio 0.66, queue_max_speed_px_s 10,
 congestion_min_vehicle_count 6, congestion_stationary_ratio 0.75.
@@ -175,7 +176,7 @@ def stop(t0, dur, x=500.0, y=400.0, tid=1, label="car") -> list:
     return _n(t0, dur, x, y=y, tid=tid, label=label, speed=0.0)
 
 
-def basic_stop(dur=8.5, before=True, drive_off=True, x=500.0, tid=1,
+def basic_stop(dur=12.0, before=True, drive_off=True, x=500.0, tid=1,
                label="car", y=400.0) -> list:
     fr = []
     t0 = 0.0
@@ -189,7 +190,7 @@ def basic_stop(dur=8.5, before=True, drive_off=True, x=500.0, tid=1,
     return fr
 
 
-def queue_scene(dur=8.5, xs=(460.0, 530.0, 600.0), tids=(1, 2, 3)) -> list:
+def queue_scene(dur=12.0, xs=(460.0, 530.0, 600.0), tids=(1, 2, 3)) -> list:
     """A compact same-lane queue: vehicle k stops at (k+1) and everyone stays
     stationary (overlapping in time) until done = n + dur, then drives off."""
     fr: list = []
@@ -239,7 +240,7 @@ def test_basic_stopped_vehicle():
     s = evs[0]
     assert s[2] == "stopped_vehicle"
     assert abs(s[0] - 2.0) < 0.2          # start = the real stationary start
-    assert abs(s[1] - 10.5) < 0.3         # end = the real last stationary frame
+    assert abs(s[1] - 14.0) < 0.3         # end = the real last stationary frame
 
 
 def test_stationary_duration():
@@ -306,7 +307,7 @@ def test_born_stationary():
 
 def test_born_stationary_grace():
     """10. ... but DOES fire after min + born grace of stationary persistence."""
-    _, d, _ = run(basic_stop(dur=12.5, before=False), det())
+    _, d, _ = run(basic_stop(dur=14.5, before=False), det())
     evs = events_of(d)
     assert len(evs) == 1
     assert abs(evs[0][0] - 0.0) < 0.2     # start = first observed stop
@@ -318,7 +319,7 @@ def test_moving_to_stopped():
     fr += drive(0.0, 3.0, x=300.0)
     fr += drive(3.0, 1.0, x=450.0, speed=40.0)
     fr += drive(4.0, 1.0, x=490.0, speed=10.0)
-    fr += stop(5.0, 8.5)
+    fr += stop(5.0, 12.0)
     _, d, _ = run(fr, det())
     evs = events_of(d)
     assert len(evs) == 1
@@ -327,20 +328,20 @@ def test_moving_to_stopped():
 
 def test_stopped_to_moving():
     """12. Event ends when the vehicle really drives away (no lingering)."""
-    _, d, _ = run(basic_stop(dur=8.5), det())
+    _, d, _ = run(basic_stop(dur=12.0), det())
     evs = events_of(d)
     assert len(evs) == 1
-    assert abs(evs[0][1] - 10.5) < 0.3     # end = last stationary frame
+    assert abs(evs[0][1] - 14.0) < 0.3     # end = last stationary frame
 
 
 def test_stationary_gap():
     """13. A small track gap keeps ONE stationary episode / event."""
     fr = []
     fr += drive(0.0, 2.0)
-    fr += stop(2.0, 4.0)                     # stationary until t=6
-    fr.append((6.3, [v(1, 500.0, 0.0)]))     # absent 0.4 s
-    fr += stop(6.4, 4.0)                     # stationary again
-    fr += drive(10.4, 2.0)
+    fr += stop(2.0, 5.5)                     # stationary until t=7.4
+    fr.append((7.8, [v(1, 500.0, 0.0)]))     # absent 0.4 s
+    fr += stop(7.9, 5.5)                     # stationary again (11.0 s total)
+    fr += drive(13.4, 2.0)
     _, d, _ = run(fr, det())
     evs = events_of(d)
     assert len(evs) == 1
@@ -389,11 +390,11 @@ def test_position_jump():
 
 def test_position_stability():
     """17. Small jitter around a stable anchor keeps the episode alive."""
-    xs = [500.0 + 4.0 * (1 if i % 2 else -1) for i in range(int(8.5 / STEP))]
+    xs = [500.0 + 4.0 * (1 if i % 2 else -1) for i in range(int(12.0 / STEP))]
     fr = []
     fr += drive(0.0, 2.0)
-    fr += _n(2.0, 8.5, xs)
-    fr += drive(10.5, 2.0)
+    fr += _n(2.0, 12.0, xs)
+    fr += drive(14.0, 2.0)
     _, d, _ = run(fr, det())
     assert len(events_of(d)) == 1
 
@@ -413,8 +414,8 @@ def test_two_isolated_stopped_vehicles():
     for k, (tid, x) in enumerate(((1, 300.0), (2, 700.0))):
         t0 = k * 12.0
         fr += drive(t0, 2.0, x=x - 80.0, tid=tid)
-        fr += stop(t0 + 2.0, 8.5, x=x, tid=tid)
-        fr += drive(t0 + 10.5, 1.0, x=x + 50.0, tid=tid)
+        fr += stop(t0 + 2.0, 12.0, x=x, tid=tid)
+        fr += drive(t0 + 14.0, 1.0, x=x + 50.0, tid=tid)
     _, d, hist = run(sort_fr(fr), det())
     evs = events_of(d)
     assert len(evs) == 2
@@ -626,17 +627,19 @@ def test_finalize():
     """41. finalize() flushes the still-active run (vehicle still stopped)."""
     fr = []
     fr += drive(0.0, 2.0)
-    fr += stop(2.0, 8.5)
+    fr += stop(2.0, 12.0)
     _, d, _ = run(fr, det())
     evs = events_of(d)
     assert len(evs) == 1
     assert abs(evs[0][0] - 2.0) < 0.2
-    assert abs(evs[0][1] - 10.5) < 0.2
+    assert abs(evs[0][1] - 14.0) < 0.2
 
 
 def test_deterministic_repeated_run():
     """42. Running the same feed twice gives identical events."""
-    fr = basic_stop(dur=9.0)
+    # dur must clear the 10 s qualification bar, otherwise both runs would
+    # produce an empty list and the equality below would be vacuous.
+    fr = basic_stop(dur=12.0)
     _, d1, _ = run(fr, det())
     _, d2, _ = run(fr, det())
     assert events_of(d1) == events_of(d2)
@@ -647,12 +650,12 @@ def test_causal_behavior():
     last active frame, never at the confirmation moment."""
     fr = []
     fr += drive(0.0, 2.0)
-    fr += stop(2.0, 8.5)                     # no drive-off: still stopped
+    fr += stop(2.0, 12.0)                     # no drive-off: still stopped
     _, d, _ = run(fr, det())
     evs = events_of(d)
     assert len(evs) == 1
     assert evs[0][0] == round(2.0, 3)        # true first stationary frame
-    assert evs[0][1] == round(10.4, 3)       # last active frame
+    assert evs[0][1] == round(13.9, 3)       # last active frame
 
 
 def test_multiple_simultaneous_vehicles():
@@ -660,8 +663,8 @@ def test_multiple_simultaneous_vehicles():
     fr = []
     fr += drive(0.0, 2.0, x=220.0, tid=1)
     fr += drive(0.0, 2.0, x=620.0, tid=2)
-    fr += stop(2.0, 8.5, x=300.0, tid=1)
-    fr += stop(2.0, 8.5, x=700.0, tid=2)
+    fr += stop(2.0, 12.0, x=300.0, tid=1)
+    fr += stop(2.0, 12.0, x=700.0, tid=2)
     for tid in (1, 2):
         fr += drive(10.5, 2.0, x=900.0, tid=tid)
     _, d, hist = run(sort_fr(fr), det())
@@ -673,15 +676,15 @@ def test_event_non_overlap():
     """45. One vehicle, two separate stops -> two non-overlapping events."""
     fr = []
     fr += drive(0.0, 2.0)
-    fr += stop(2.0, 8.5)
-    t0 = 10.5
+    fr += stop(2.0, 12.0)
+    t0 = 14.0
     fr += drive(t0, 2.0)
-    fr += stop(t0 + 2.0, 8.5)
-    fr += drive(t0 + 10.5, 2.0)
+    fr += stop(t0 + 2.0, 12.0)
+    fr += drive(t0 + 14.0, 2.0)
     _, d, _ = run(fr, det())
     evs = events_of(d)
     assert len(evs) == 2
-    assert evs[0][0] < evs[0][1] <= evs[0][0] + 9.5
+    assert evs[0][0] < evs[0][1] <= evs[0][0] + 13.0
     assert evs[1][0] > evs[0][1]
 
 
@@ -689,11 +692,11 @@ def test_merge_gap():
     """46. Engine merge_gap merges close episodes / splits distant ones."""
     fr = []
     fr += drive(0.0, 2.0)
-    fr += stop(2.0, 9.0)
-    t0 = 11.0
+    fr += stop(2.0, 12.0)
+    t0 = 14.0
     fr += drive(t0, 1.0)                    # real move of 1 s
-    fr += stop(t0 + 1.0, 9.0)
-    fr += drive(t0 + 10.0, 2.0)
+    fr += stop(t0 + 1.0, 12.0)
+    fr += drive(t0 + 13.0, 2.0)
     _, d_merge, _ = run(fr, det(merge_gap=2.0))
     assert len(events_of(d_merge)) == 1
     _, d_split, _ = run(fr, det(merge_gap=0.3))
@@ -724,8 +727,8 @@ def test_duplicate_suppression():
     duplicates the event nor inflates the stationary duration."""
     d = det()
     geom = fgeom()
-    frames = sort_fr(merge_frames(drive(0.0, 2.0), stop(2.0, 8.5),
-                                  drive(10.5, 2.0)))
+    frames = sort_fr(merge_frames(drive(0.0, 2.0), stop(2.0, 12.0),
+                                  drive(14.0, 2.0)))
     tracks: dict = {}
     for t, entries in frames:
         current: dict = {}
@@ -746,7 +749,7 @@ def test_duplicate_suppression():
     evs = events_of(d)
     assert len(evs) == 1
     assert abs(evs[0][0] - 2.0) < 0.2
-    assert abs(evs[0][1] - 10.4) < 0.2
+    assert abs(evs[0][1] - 13.9) < 0.2
 
 
 def test_class_filtering():
@@ -791,7 +794,7 @@ def test_acceleration_signal():
     fr += drive(0.0, 2.0, speed=80.0)
     fr += [(t, [(1, "car", 500.0, 400.0,
                   sm(0.0, accel=-3.0, heading=90.0))])
-           for t in (round(2.0 + i * STEP, 3) for i in range(85))]
+           for t in (round(2.0 + i * STEP, 3) for i in range(125))]
     _, d, hist = run(fr, det())
     assert len(events_of(d)) == 1
     assert any_rec(hist, lambda r: r["accel"] == -3.0)
@@ -801,7 +804,7 @@ def test_heading_freeze():
     """56. Stationary heading stays stable (MotionEngine convention)."""
     fr = []
     fr += drive(0.0, 2.0)
-    fr += stop(2.0, 8.5)
+    fr += stop(2.0, 12.0)
     fr = [(t, [(tid, lab, x, y,
                 sm(80.0, heading=90.0) if t < 2.0 else sm(0.0, heading=90.0))])
           for (t, ((tid, lab, x, y, _), )) in [f for f in fr]]
@@ -813,7 +816,7 @@ def test_heading_freeze():
 
 def test_nearby_moving_vehicles():
     """57. Moving neighbours do NOT create a queue -> the stops fire."""
-    dur = 10.0
+    dur = 13.0
     fr = queue_scene(dur=dur, xs=(460.0, 530.0, 600.0), tids=(1, 2, 3))
     nt = 3.0 + dur
     fr = merge_frames(fr, drive(2.0, dur, x=500.0, tid=4))
@@ -832,21 +835,21 @@ def test_queue_membership_change():
     """58. Leaving the queue restarts an isolated stop before confirming."""
     fr = []
     fr += drive(0.0, 1.0, x=400.0, tid=1)          # v1 approach
-    fr += _n(1.0, 17.4, 480.0, tid=1)              # v1 stops 1..18.3
+    fr += _n(1.0, 18.8, 480.0, tid=1)              # v1 stops 1..19.7
     fr += drive(1.0, 1.0, x=480.0, tid=2)          # v2 stops 2..9.3
     fr += _n(2.0, 7.4, 540.0, tid=2)
     fr += drive(2.0, 1.0, x=550.0, tid=3)          # v3 stops 3..9.3
     fr += _n(3.0, 6.4, 610.0, tid=3)
     fr += drive(9.4, 1.0, x=700.0, tid=2)          # queue disperses at 9.4
     fr += drive(9.4, 1.0, x=700.0, tid=3)
-    # v1 stays stopped, now isolated, another 8.6 s -> confirms at ~18.0
-    fr += drive(18.4, 1.0, x=700.0, tid=1)
+    # v1 never leaves its anchor, so after dispersal it is isolated and must
+    # serve the FULL 10 s bar: confirmed at ~19.4, still at x=480.
     _, d, hist = run(sort_fr(fr), det())
     assert any_rec(hist, lambda r: r["queue_suppressed"], tid=1)
     evs = events_of(d)
     assert len(evs) == 1
     assert evs[0][0] >= 9.4 - 0.3                   # starts after dispersal
-    assert evs[0][1] - evs[0][0] >= 7.99
+    assert evs[0][1] - evs[0][0] >= 9.9
 
 
 def test_segments_to_events():
@@ -869,11 +872,11 @@ def test_invalid_vehicle_reason():
 def test_born_stationary_episode_after_move():
     """Regression: after a real move the next episode is not born."""
     fr = []
-    fr += stop(0.0, 12.5)                    # born stop -> confirmed at 12 s
-    t0 = 12.5
+    fr += stop(0.0, 14.5)                    # born stop -> min 10 + grace 4
+    t0 = 14.5
     fr += drive(t0, 2.0)
-    fr += stop(t0 + 2.0, 8.5)                # normal stop: 8 s enough
-    fr += drive(t0 + 10.5, 2.0)
+    fr += stop(t0 + 2.0, 12.0)                # normal stop: 10 s bar
+    fr += drive(t0 + 14.0, 2.0)
     _, d, _ = run(fr, det())
     evs = events_of(d)
     assert len(evs) == 2
@@ -884,6 +887,27 @@ def test_slow_speed_threshold():
     fr = _n(0.0, 20.0, 500.0, speed=6.0)     # exactly at the boundary
     _, d, _ = run(fr, det())
     assert events_of(d) == []
+
+
+def test_official_ten_second_qualification():
+    """The official annotation convention is "stationary on the carriageway for
+    10 s or more, not in a queue at a signal", so the DEFAULT qualification bar
+    must be exactly 10.0 s. This pins the spec, not a tuned value: a stop that
+    never reaches 10 s is not labelled at all, and one that does is reported
+    over its full extent."""
+    assert StoppedVehicleDetector().min_stationary_duration == 10.0
+
+    # 9.5 s of stationary evidence: below the bar, so no event.
+    _, d_short, _ = run(basic_stop(dur=9.5), det())
+    assert events_of(d_short) == []
+
+    # 10.5 s clears it, and the reported span is the real stop extent, not
+    # just the qualifying tail.
+    _, d_long, _ = run(basic_stop(dur=10.5), det())
+    evs = events_of(d_long)
+    assert len(evs) == 1
+    assert abs(evs[0][0] - 2.0) < 0.2          # start = first stationary frame
+    assert abs(evs[0][1] - 12.5) < 0.3         # end = last stationary frame
 
 
 # ===================================================================== runner

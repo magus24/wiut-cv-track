@@ -86,6 +86,16 @@ EVENT START is the real first stationary frame, a single stationary frame never
 confirms, and a long isolated stop becomes one [start, end] segment that closes
 when the episode ends (short `allowed_gap` confirmation only).
 
+QUALIFICATION THRESHOLD = 10 s, matching the official annotation convention
+("stationary on the carriageway for 10 s or more, not in a queue at a signal").
+This is a QUALIFICATION gate, not the event length: a stop that never reaches
+10 s is not labelled at all, while a qualifying stop is reported over its full
+[first stationary frame, last stationary frame] extent. The default was 8.0,
+which admitted 2-second-short stops the annotators would not have labelled and
+therefore cost precision on this class. `born_stationary_grace_sec` is separate
+and unchanged: it covers a vehicle that is already stopped when it first appears,
+and does not lower the 10 s bar.
+
 Deterministic (sorted iteration, no randomness), strictly causal, signal-free,
 no heavy ML, no new tracker, no pairwise engine.
 """
@@ -150,7 +160,7 @@ class StoppedVehicleDetector:
         vehicle_labels: tuple = DEFAULT_VEHICLE_LABELS,
         stationary_speed_px_s: float = 6.0,
         slow_speed_px_s: float = 20.0,
-        min_stationary_duration_sec: float = 8.0,
+        min_stationary_duration_sec: float = 10.0,
         born_stationary_grace_sec: float = 4.0,
         allowed_stationary_gap_sec: float = 1.5,
         max_track_gap_sec: float = 2.0,
