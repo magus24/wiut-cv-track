@@ -1,1 +1,32 @@
+# Line endings are pinned to LF for every text file, on every platform.
+#
+# WHY, MEASURED ON A REAL CLONE (27.09.2026): with the Windows default
+# `core.autocrlf=true`, a fresh `git clone` checked out this repository with CRLF,
+# which broke two things that matter:
+#
+#   1. `weights/download.sh` came out as 60 CR / 60 LF. Run under bash, the
+#      first line is `set -euo pipefail\r`, and the shell dies on the stray CR.
+#      So the script that exists to REPAIR the Git-LFS weight pointer did not
+#      run at all on the one platform whose default caused the damage. The fix
+#      for the trap was itself disabled by the trap.
+#   2. `run_submission.py` came out as 8843 bytes instead of the committed
+#      8629. The committed blob is still byte-identical to the organizers'
+#      pristine original (sha256 a47b494a...), but the working-tree copy was not,
+#      which makes the "we never touched the harness" claim unverifiable from
+#      inside a Windows clone - the exact property the claim exists to assert.
+#
+# `eol=lf` fixes the checkout side on every platform. The blob side was already
+# correct, so this changes no committed bytes: renormalising is a no-op here.
+* text=auto eol=lf
+
+# The detector weight lives in Git LFS (114,636,239 bytes > GitHub's 100 MiB
+# blob limit) and must never be line-ending-processed.
 weights/*.pt filter=lfs diff=lfs merge=lfs -text
+
+# Binary assets: never touched, never diffed as text.
+*.mp4 -text
+*.ico -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.pt -text
