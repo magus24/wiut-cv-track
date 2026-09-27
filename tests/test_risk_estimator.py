@@ -1131,8 +1131,14 @@ def test_observation_rate_is_derived_from_fps_not_frame_count():
     assert R._stride_for_fps(1e6, R.RiskConfig(target_hz=10.0, max_stride=8)) == 8
 
 
-def test_skipped_frames_resend_the_last_score_without_decaying_it():
-    """No decay may be invented on frames that were never observed."""
+def test_skipped_frames_resend_the_last_score_without_decaying_it(monkeypatch):
+    """No decay may be invented on frames that were never observed.
+
+    The guard is switched off here so the test isolates the resend semantics
+    at the nominal 10 Hz / stride 3; the rate the guard actually plans at the
+    declared cost is pinned separately, in `tests/test_budget_guard.py`.
+    """
+    monkeypatch.setenv("TCV_BUDGET_GUARD", "0")
     steps = head_on_approach()
     est = RiskImpl(detector_factory=lambda: ScriptedDetector(
         lambda i: steps[min(i, len(steps) - 1)][1]))

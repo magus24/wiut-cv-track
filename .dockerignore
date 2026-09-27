@@ -1,0 +1,20 @@
+# Never bake test footage, run outputs or caches into the image: the image is
+# built from the submission package, and the organizers' videos do not ship
+# with it.
+samples/
+videos/
+data/
+*.mp4
+*.MP4
+*.avi
+*.mkv
+predictions*.json
+reports/
+labels_draft/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.git/
+.gitignore
+*.log

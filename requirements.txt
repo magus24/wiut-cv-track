@@ -1,21 +1,16 @@
-# Reproducible dependencies for offline Linux GPU (CUDA 12.6) evaluation.
+# Core dependencies, pinned to the versions this solution was developed and
+# verified against (torch/torchvision are deliberately NOT here - see
+# requirements-torch.txt for why they are split out).
 #
-# Verified end-to-end: a clean venv built from this exact file passes the full
-# test suite (728 passed, 1 skipped) and the organizer's format validation.
+# This file installs OFFLINE on any environment that already provides a
+# CUDA-enabled torch: nothing here needs the network once the wheels are
+# cached, and no 2.5 GB torch download can be triggered by a patch-version
+# mismatch. For a clean build from scratch use the Dockerfile, which installs
+# requirements-torch.txt first.
 #
-# Torch wheels come from the official PyTorch index, added with
-# --extra-index-url (NOT --index-url). A bare --index-url in a requirements
-# file is a global option and would also redirect the numpy/opencv/ultralytics
-# lookups to the PyTorch index, which does not mirror them.
---extra-index-url https://download.pytorch.org/whl/cu126
-
-# The +cu126 builds of the exact torch/torchvision versions the suite is
-# developed against (2.12.0 / 0.27.0), so the only delta versus the verified
-# environment is the CUDA build tag.
-torch==2.12.0+cu126
-torchvision==0.27.0+cu126
-
-# Core dependencies - exact versions verified working.
+# Verified end-to-end: torch 2.14.0+cu126 / torchvision 0.29.0+cu126 /
+# Python 3.12 on an RTX 3070 Ti and an NVIDIA T4, full test suite green and the
+# organizer's `evaluate.py --validate-only` passing.
 #
 # NOTE: this is opencv-python, not opencv-python-headless, on purpose.
 # Ultralytics depends on `opencv-python`, and the two distributions install
@@ -25,7 +20,7 @@ torchvision==0.27.0+cu126
 # while headless 4.13.0.92 was the pin). Pinning the single distribution that
 # Ultralytics actually requires removes that class of failure entirely.
 # If the grading image is a slim container, OpenCV needs the system libs:
-# apt-get install -y libgl1 libglib2.0-0
-numpy==2.4.6
+# apt-get install -y libgl1 libglib2.0-0   (the Dockerfile does this)
+numpy==2.5.3
 opencv-python==5.0.0.93
-ultralytics==8.4.53
+ultralytics==8.4.160

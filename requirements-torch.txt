@@ -1,0 +1,26 @@
+# Torch/torchvision ONLY, pinned to the exact CUDA 12.6 builds this solution
+# was developed and verified against.
+#
+# Split out of requirements.txt on purpose. The single most likely way to fail
+# an OFFLINE evaluation is `pip install -r requirements.txt` trying to fetch a
+# 2.5 GB torch wheel from the network: the grading image very likely already
+# ships a working CUDA torch, and if the pinned patch version differs by even
+# one number, pip reports "No matching distribution" (offline) instead of
+# using what is installed. So:
+#
+#   * requirements.txt          -> everything EXCEPT torch/torchvision
+#                                  (safe to install offline on an image that
+#                                  already has torch; no re-download)
+#   * requirements-torch.txt    -> this file, for a clean build (needs network,
+#                                  i.e. the pre-evaluation Docker step)
+#
+# See README.md ("Offline / no-internet evaluation") and the Dockerfile.
+#
+# The wheels come from the official PyTorch index, added with
+# --extra-index-url (NOT --index-url). A bare --index-url in a requirements
+# file is a global option and would also redirect the numpy/opencv/ultralytics
+# lookups to the PyTorch index, which does not mirror them.
+--extra-index-url https://download.pytorch.org/whl/cu126
+
+torch==2.14.0+cu126
+torchvision==0.29.0+cu126

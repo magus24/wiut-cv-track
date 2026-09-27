@@ -505,9 +505,17 @@ def _budget_guard_enabled() -> bool:
     Lazy for the same reason `Settings.enable_phase_detectors` is: the
     production value is fixed at launch, so reading it late cannot make one
     run observe two different rates.
+
+    Unset means ENABLED, mirroring `Settings.budget_guard`. The two readers
+    must agree: Part A consults the settings flag while Part B consults this
+    one, and a Part A that coarsens against a Part B that does not would spend
+    the saving on the wrong side of the budget. `tests/test_budget_guard.py`
+    pins the agreement.
     """
-    return os.environ.get("TCV_BUDGET_GUARD", "").strip().lower() in {
-        "1", "true", "yes", "on"}
+    raw = os.environ.get("TCV_BUDGET_GUARD")
+    if raw is None:
+        return True
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _sec_per_obs() -> float:
@@ -643,8 +651,8 @@ class RiskEstimator:
         self._last = 0.0
         self._prev_t: float | None = None
         # PHASE 25 budget guard: may only LOWER the observation rate, and only
-        # when the projection says the configured one would not fit. Off by
-        # default, so this is `self.config.target_hz` unchanged in production.
+        # when the projection says the configured one would not fit. ON by
+        # default (TCV_BUDGET_GUARD=0 disables it).
         self._target_hz = self._budgeted_target_hz()
         self._stride = _stride_for_fps(self.meta.get("fps"), self.config,
                                        target_hz=self._target_hz)
@@ -659,8 +667,8 @@ class RiskEstimator:
 
         Deliberately a method on the estimator rather than an import-time
         constant: the guard needs `meta` (fps, n_frames) and `reset()` is the
-        first point where those exist. Returns the configured rate untouched
-        when the guard is disabled, which is the default.
+        first point where those exist. Returns the configured rate unchanged
+        when the guard is disabled, or when the configured rate already fits.
         """
         configured = float(self.config.target_hz)
         if not _budget_guard_enabled():

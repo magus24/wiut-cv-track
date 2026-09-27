@@ -49,9 +49,10 @@ def run_pipeline(video_path: str, stride: int | None = None,
     W, H = reader.width, reader.height
 
     # PHASE 25 budget guard. Only consulted when the caller did not pass an
-    # explicit stride, so an explicit request always wins and the default path
-    # is byte-identical while TCV_BUDGET_GUARD is off (the default). The guard
-    # can only INCREASE the stride, so on hardware with headroom it is a no-op.
+    # explicit stride, so an explicit request always wins. The guard can only
+    # INCREASE the stride, so on hardware at or under the declared per-
+    # observation cost it is a no-op and Part A output is unchanged. ON by
+    # default (TCV_BUDGET_GUARD=0 disables it).
     if stride_was_default and settings.budget_guard:
         stride = budget.stride_for_budget(
             reader.n_frames, reader.fps, stride, settings.sec_per_obs)

@@ -58,10 +58,11 @@ class Settings:
         self.omp_threads = os.environ.get("TCV_OMP_THREADS", "4")
         self.weights_path = os.environ.get("TCV_WEIGHTS", DEFAULT_WEIGHTS)
         self.scene_config_path = SCENE_CONFIG_PATH
-        # PHASE 25: budget-aware sampling. OFF by default - see
-        # src/config/budget.py for why the grading device does not need it and
-        # why enabling it can only ever coarsen sampling, never refine it.
-        self.budget_guard = _env_bool("TCV_BUDGET_GUARD", False)
+        # PHASE 25: budget-aware sampling. ON by default: the harness voids a
+        # whole video that runs past 3x its duration, and the guard can only
+        # ever coarsen sampling, never refine it. TCV_BUDGET_GUARD=0 freezes
+        # the sampling rate.
+        self.budget_guard = _env_bool("TCV_BUDGET_GUARD", True)
         self.sec_per_obs = _read_sec_per_obs(self.device)
         # frame->segment post-processing (same defaults as pre-refactor)
         self.min_duration = float(os.environ.get("TCV_MIN_DUR", "0.5"))

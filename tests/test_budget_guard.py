@@ -185,9 +185,15 @@ def test_a_slower_device_never_yields_a_smaller_stride_than_a_faster_one():
 # --------------------------------------------------------------------------
 
 def test_no_op_on_the_documented_gpu_cost_for_every_organizer_sample():
-    """The load-bearing test. All four organizer samples at the documented
-    45 ms/observation must keep the shipping stride of 3 exactly, so Part A on
-    the grading T4 is byte-identical with and without this module."""
+    """The load-bearing test, on the other side of the declared cost.
+
+    A device that really does deliver observations at or under the DECLARED
+    cost must keep the shipping stride of 3 exactly, so on such a card Part A
+    is byte-identical with and without this module. (At the declared cost
+    itself the guard does engage - see
+    `test_the_declared_gpu_cost_engages_on_every_organizer_sample`.)
+    """
+    cheap = GPU_SEC * 0.25
     samples = {           # name: (frames, fps)  -- from the organizer's notes
         "C3896": (10200, 29.97),
         "C3897": (9525, 29.97),
@@ -195,19 +201,38 @@ def test_no_op_on_the_documented_gpu_cost_for_every_organizer_sample():
         "C3905": (C3905_FRAMES, C3905_FPS),
     }
     for name, (frames, fps) in samples.items():
-        assert stride_for_budget(frames, fps, 3, GPU_SEC) == 3, name
+        assert stride_for_budget(frames, fps, 3, cheap) == 3, name
+
+
+def test_the_declared_gpu_cost_engages_on_every_organizer_sample():
+    """Pins the SHIPPING behaviour at the declared T4-class cost, so a change
+    to `SEC_PER_OBS` cannot silently alter how the organizers' own samples are
+    sampled without this test moving."""
+    samples = {           # name: (frames, fps)
+        "C3896": (10200, 29.97),
+        "C3897": (9525, 29.97),
+        "C3902": (9525, 29.97),
+        "C3905": (C3905_FRAMES, C3905_FPS),
+    }
+    got = {name: stride_for_budget(frames, fps, 3, GPU_SEC)
+           for name, (frames, fps) in samples.items()}
+    assert got == {"C3896": 4, "C3897": 4, "C3902": 4, "C3905": 4}, got
+    # and it must still be a bounded, sane coarsening, never the 60x cap
+    for name, stride in got.items():
+        assert 3 < stride <= 8, (name, stride)
 
 
 def test_no_op_on_gpu_cost_at_low_frame_rates_too():
     """Headroom is headroom: a 10 fps clip costs a third as much per second,
     so it must not be coarsened either."""
+    cheap = GPU_SEC * 0.25
     for fps in (5.0, 9.99, 15.0, 24.0, 25.0, 29.97, 30.0, 50.0, 60.0):
-        assert stride_for_budget(3825, fps, 3, GPU_SEC) == 3, fps
+        assert stride_for_budget(3825, fps, 3, cheap) == 3, fps
 
 
 def test_no_op_on_gpu_cost_holds_for_very_long_videos():
     """10 minutes at 29.97 fps is 17982 frames, ~600 s of video, 1800 s budget."""
-    assert stride_for_budget(17982, 29.97, 3, GPU_SEC) == 3
+    assert stride_for_budget(17982, 29.97, 3, GPU_SEC * 0.25) == 3
 
 
 def test_the_guard_engages_on_the_measured_cpu_cost():
@@ -280,11 +305,24 @@ def test_affordable_observations_is_zero_for_degenerate_input():
 # target_hz_for_budget: Part B's mirror
 # --------------------------------------------------------------------------
 
-def test_part_b_target_hz_is_a_no_op_on_the_documented_gpu_cost():
-    """10 Hz is the shipping default; with T4 headroom the guard must not
-    lower it, or Part B's curve would change on the grading machine."""
+def test_part_b_target_hz_is_a_no_op_above_the_declared_gpu_cost():
+    """A device at or under the declared cost keeps the 10 Hz default.
+
+    The declared cost has to be an OVER-estimate of the grading device: at an
+    optimistic figure this guard is a no-op on every card slower than the one
+    it was measured on, and the video then overruns and is voided.
+    """
+    cheap = GPU_SEC * 0.25
     for dur in (11.91, 40.04, 127.63, 340.34):
-        assert target_hz_for_budget(dur, 10.0, GPU_SEC) == 10.0, dur
+        assert target_hz_for_budget(dur, 10.0, cheap) == 10.0, dur
+
+
+def test_part_b_target_hz_is_lowered_at_the_declared_gpu_cost():
+    """At the declared T4-class cost the guard must actually pull the rate
+    down: that is the whole reason it is on by default."""
+    for dur in (40.04, 127.63, 340.34):
+        got = target_hz_for_budget(dur, 10.0, GPU_SEC)
+        assert 0.0 < got < 10.0, (dur, got)
 
 
 def test_part_b_target_hz_is_lowered_on_the_measured_cpu_cost():
@@ -319,22 +357,25 @@ def test_part_b_target_hz_is_monotone_in_cost():
 
 
 # --------------------------------------------------------------------------
-# Wiring: default OFF, explicit input wins
+# Wiring: default ON, explicit input wins
 # --------------------------------------------------------------------------
 
-def test_the_guard_is_off_by_default():
+def test_the_guard_is_on_by_default():
+    """The harness voids an over-budget video, so the guard ships enabled: it
+    can only ever coarsen sampling, and being idle when the budget blows is the
+    one outcome that costs the whole video's score."""
     from src.config.settings import Settings
-    assert Settings().budget_guard is False
+    assert Settings().budget_guard is True
 
 
-def test_the_guard_can_be_switched_on_by_env(monkeypatch):
+def test_the_guard_can_be_switched_off_by_env(monkeypatch):
     from src.config.settings import Settings
-    for truthy in ("1", "true", "TRUE", "yes", "on"):
-        monkeypatch.setenv("TCV_BUDGET_GUARD", truthy)
-        assert Settings().budget_guard is True, truthy
     for falsy in ("0", "false", "no", "off", "", "maybe"):
         monkeypatch.setenv("TCV_BUDGET_GUARD", falsy)
         assert Settings().budget_guard is False, falsy
+    for truthy in ("1", "true", "TRUE", "yes", "on"):
+        monkeypatch.setenv("TCV_BUDGET_GUARD", truthy)
+        assert Settings().budget_guard is True, truthy
 
 
 def test_settings_reads_the_cost_figure_from_the_device(monkeypatch):
@@ -422,10 +463,22 @@ def test_part_b_consults_the_guard_only_when_enabled(monkeypatch):
     import src.risk.risk as risk
 
     monkeypatch.delenv("TCV_BUDGET_GUARD", raising=False)
-    assert risk._budget_guard_enabled() is False
+    assert risk._budget_guard_enabled() is True
     for truthy in ("1", "true", "yes", "on", "ON"):
         monkeypatch.setenv("TCV_BUDGET_GUARD", truthy)
         assert risk._budget_guard_enabled() is True, truthy
     for falsy in ("0", "false", "no", "off", "", "  "):
         monkeypatch.setenv("TCV_BUDGET_GUARD", falsy)
         assert risk._budget_guard_enabled() is False, falsy
+
+
+def test_part_a_and_part_b_agree_on_the_default(monkeypatch):
+    """Part A reads `Settings.budget_guard`; Part B reads
+    `risk._budget_guard_enabled()`. If their defaults ever drift, one half of
+    the budget silently stops being protected - which is invisible until a
+    video is voided."""
+    from src.config.settings import Settings
+    import src.risk.risk as risk
+
+    monkeypatch.delenv("TCV_BUDGET_GUARD", raising=False)
+    assert Settings().budget_guard is risk._budget_guard_enabled() is True

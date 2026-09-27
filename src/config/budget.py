@@ -19,26 +19,28 @@ figure is therefore a *declared constant* per device, not a measurement.
 passes the stride it would otherwise use and the guard returns
 ``max(current, required)``. Consequences:
 
-  * On hardware with headroom the guard is a provable no-op. At the documented
-    T4 figure (45 ms/observation) a 29.97 fps video needs stride 1 to fit, so
-    the default stride 3 passes through untouched and Part A output on the
-    grading machine is byte-identical to shipping without this module.
+  * On hardware with headroom the guard is a provable no-op. At the declared
+    cost (:data:`SEC_PER_OBS`) the affordable-observation count for a 29.97 fps
+    video is 4.5x the observations stride 3 costs, so a device at or under the
+    declared figure keeps the default stride and Part A output is identical to
+    shipping without this module.
   * Quality is never silently upgraded by the guard, so it cannot change
     results on a fast device.
 
-Why a guard at all, if the T4 has ~3.3x headroom: the frame rate of the test
-videos is not under our control, and cost per second of video is
-``observations_per_second x sec_per_obs`` while the budget is denominated in
-seconds. A fixed *frame* stride therefore makes the budget outcome depend on
-the test set's frame rate - measured on this repo's own material, Part A costs
-4.71 s per second of video at imgsz 800 on CPU, and 0.45 s/s at the documented
-T4 figure, a 10x spread on identical code. The guard converts that hidden
-coupling into an explicit, declared cost assumption.
+Why a guard at all: the harness voids a whole video that exceeds 3x its
+duration, and the frame rate of the test videos is not under our control. Cost
+per second of video is ``observations_per_second x sec_per_obs`` while the
+budget is denominated in seconds, so a fixed *frame* stride makes the budget
+outcome depend on the test set's frame rate - measured on this repo's own
+material, Part A costs 4.71 s per second of video at imgsz 800 on CPU against
+0.45 s/s on a 3070 Ti, a 10x spread on identical code. The guard converts that
+hidden coupling into an explicit, declared cost assumption.
 
-Disabled by default (``TCV_BUDGET_GUARD=1`` enables it). It is OFF by default
-because the grading device does not need it, and a default-ON path that can
-only degrade quality buys nothing there while adding a way to lose points. It
-is a lever for slower hardware, not an optimisation.
+ON by default (``TCV_BUDGET_GUARD=0`` disables it). It was OFF by default while
+the declared GPU cost was an optimistic 45 ms/frame, which made the guard a
+no-op on every device slower than a 3070 Ti - the guard would have sat idle
+while the video overran and was voided, which is the one outcome worth spending
+quality to avoid. Set ``TCV_BUDGET_GUARD=0`` to freeze the sampling rate.
 """
 
 from __future__ import annotations
@@ -47,13 +49,34 @@ import math
 import os
 
 # Declared cost of ONE detector observation (one YOLO call incl. tracking) in
-# seconds. Measured on this repo's 4K material on CPU at imgsz 800: 0.4717 s
-# median (cost_model.py); the documented GPU figure is 0.045 s
-# (AGENTS.md: "GPU 45 ms/frame"). Deliberately rounded UP for the CPU case: an
-# over-estimate costs a little resolution, an under-estimate costs the entire
-# video's score.
+# seconds. Deliberately rounded UP, because the failure modes are not
+# symmetric: an over-estimate costs a little temporal resolution, an
+# under-estimate costs the entire video's score (the harness blanks it).
+#
+# MEASURED, 2026-09-27, end to end through the organizers' own harness on the
+# 4K sample C3905 (127.6 s, 29.97 fps, imgsz 800, RTX 3070 Ti, stride 3):
+#
+#   Part A 143.2 s / 1275 observations = 0.112 s per observation
+#   Part B 147.7 s / 1276 observations = 0.116 s per observation
+#   total  290.8 s = 2.28x real time against the 3x budget, i.e. 24% headroom
+#
+# The 0.045 s figure previously declared here ("GPU 45 ms/frame") is a
+# best-case number for a warm loop on an idle card and understates the real
+# per-observation cost by 2.5x. At 0.045 s declared the guard is a no-op on
+# every device slower than a 3070 Ti, which is exactly the device class the
+# organizers grade on (T4, 16 GB): the guard would sit idle while the video
+# overran and got voided.
+#
+# 0.20 s is therefore the T4-class declaration: ~1.7x the cost measured on a
+# much faster consumer GPU, and ~2.3x the naive 45 ms figure. On a 3070 Ti it
+# moves Part A from stride 3 to 4 and Part B from 10 Hz to 7.5 Hz - a real but
+# small quality cost. Raise it with TCV_SEC_PER_OBS if the grading device is
+# announced to be slower still; it can only ever coarsen sampling.
+#
+# The CPU figure is measured on this repo's 4K material at imgsz 800:
+# 0.4717 s median (cost_model.py), rounded up.
 SEC_PER_OBS: dict[str, float] = {
-    "cuda": 0.05,
+    "cuda": 0.20,
     "cpu": 0.60,
 }
 DEFAULT_SEC_PER_OBS = 0.60          # unknown / unlisted device: assume slow

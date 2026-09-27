@@ -10,17 +10,19 @@ solution.py          <- the ONLY file you implement (CLASSES, detect_events, Ris
 run_submission.py    <- organizers' harness: folder of videos -> predictions.json   (do not modify)
 evaluate.py          <- format check + the official metric                          (do not modify)
 examples/            <- ground_truth.json and predictions.json in the exact format
-requirements.txt     <- fully pinned, including the CUDA torch build (see "Verified environment")
+requirements.txt     <- pinned deps EXCEPT torch (safe to install offline)
+requirements-torch.txt <- the pinned CUDA torch/torchvision, for a clean build
+Dockerfile           <- offline-safe image (build BEFORE the offline evaluation)
 src/                 <- the implementation (pipeline, detection, tracking, scene, events, risk)
 scene_config.json    <- self-calibrated geometry for the fixed camera (all videos share it)
 weights/             <- yolo11x.pt (shipped) + download.sh (fallback)
-tests/               <- 729 tests, run with `python -m pytest tests -q`
+tests/               <- 732 tests, run with `python -m pytest tests -q`
 ```
 
 ## Quickstart
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-torch.txt -r requirements.txt   # or: docker build -t team .
 # 1. implement solution.py
 # 2. label the sample videos yourselves -> my_labels.json (same shape as examples/ground_truth.json)
 python run_submission.py --videos samples --out predictions_samples.json --team <your-team>
@@ -50,7 +52,15 @@ You may remove ids from `CLASSES`; never add.
 ## What we run (offline, one GPU, no internet)
 
 ```bash
-pip install -r requirements.txt            # or: docker build -t team .
+# ONLINE, before the offline evaluation - the sanctioned Docker step:
+docker build -t wiut-cv-track .
+# then, on the grading machine (no internet needed from here on):
+docker run --rm --gpus all -v /data/test:/data/test wiut-cv-track
+```
+
+```bash
+# ...or, without Docker, on an image that already has a CUDA torch:
+pip install --no-deps -r requirements.txt
 python run_submission.py --videos /data/test --out predictions.json
 python evaluate.py --pred predictions.json --gt ground_truth.json
 ```
@@ -76,23 +86,44 @@ model cannot be loaded, and `Detector.preflight()` reports the problem directly.
 
 ## Verified environment
 
-`requirements.txt` is fully pinned and was validated the way the graders run it:
-a **clean virtualenv** built from that exact file, then the full suite and the
-organizer's own format check.
+Pinned to the versions this solution was actually developed and verified against,
+then checked the way the graders run it: a **clean virtualenv**, the full suite,
+and the organizer's own format check.
 
-| Package | Pin | Note |
-|---|---|---|
-| `torch` | `2.12.0+cu126` | CUDA 12.6 build, from the official PyTorch index |
-| `torchvision` | `0.27.0+cu126` | matching build |
-| `numpy` | `2.4.6` | |
-| `opencv-python` | `5.0.0.93` | see the note below |
-| `ultralytics` | `8.4.53` | provides YOLO11x + ByteTrack |
+| Package | Pin | Where | Note |
+|---|---|---|---|
+| `torch` | `2.14.0+cu126` | `requirements-torch.txt` | CUDA 12.6 build, official PyTorch index |
+| `torchvision` | `0.29.0+cu126` | `requirements-torch.txt` | matching build |
+| `numpy` | `2.5.3` | `requirements.txt` | |
+| `opencv-python` | `5.0.0.93` | `requirements.txt` | see the note below |
+| `ultralytics` | `8.4.160` | `requirements.txt` | provides YOLO11x + ByteTrack |
 
-Result: **728 passed, 1 skipped** (the skip needs a real sample video, which is
-not part of the submission), and
+Python 3.12, verified on an RTX 3070 Ti (8 GB) locally and written against a
+T4-class 16 GB card. Result: **731 passed, 1 skipped** (the skip needs a real
+sample video, which is not part of the submission), and
 `format: 1 video(s), 14 event(s), 0 error(s), 0 warning(s) -> VALID`.
 
-Two details that are easy to get wrong:
+### Why torch is in a separate file
+
+The evaluation machine has no internet, but `pip install -r requirements.txt` is
+still one of the two commands the organizers run. A pinned torch wheel is a
+2.5 GB download, so the single most likely way to lose the whole run is pip
+deciding it needs a torch it cannot fetch:
+
+- if the grading image already ships a working CUDA torch and our pin differs by
+  one patch number, `pip install` fails offline instead of using what is there;
+- if it ships none, nothing can install 2.5 GB offline anyway.
+
+So the torch pin lives in `requirements-torch.txt` (used by the Dockerfile, at
+build time, where the network is available) and `requirements.txt` holds only the
+packages that are small and already cached in any sane image. On a grading image
+that already has torch:
+
+```bash
+pip install --no-deps -r requirements.txt      # seconds, no network
+```
+
+Three details that are easy to get wrong:
 
 - **`--extra-index-url`, not `--index-url`.** A bare `--index-url` in a
   requirements file is a *global* option, so it would also send the
@@ -106,7 +137,11 @@ Two details that are easy to get wrong:
   — observed as `cv2.__version__ == 5.0.0` while the pin said `4.13.0.92`.
   Pinning the single distribution Ultralytics actually requires removes that
   failure mode. On a slim container image OpenCV also needs the system libraries
-  `libgl1` and `libglib2.0-0`.
+  `libgl1` and `libglib2.0-0` (the Dockerfile installs them).
+- **The Dockerfile is built while the network is still available.** It is the
+  step the brief sanctions for exactly this problem, and after `docker build`
+  the run needs no network at all: the weight, the scene config and the code are
+  all baked in.
 
 Determinism: the inference path contains no RNG at all — no `random`, no
 `np.random`, no `torch.manual_seed` call — so two runs on the same machine
@@ -116,8 +151,9 @@ no wall-clock or filename-order dependence either.
 ## Our approach
 
 **Part A** is one YOLO11x + ByteTrack pass per video, sampled every 3rd frame
-(`TCV_STRIDE=3`). `src/pipeline/pipeline.py` decodes each video exactly once and
-feeds one `EventManager`; every class provider is registered in a single
+(`TCV_STRIDE=3`, or coarser if the budget guard below says so).
+`src/pipeline/pipeline.py` decodes each video exactly once and feeds one
+`EventManager`; every class provider is registered in a single
 registry (`src/events/manager.py`, `DEFAULT_PROVIDERS`) that maps each of the 14
 official ids to exactly one provider, so a label can never be reported twice.
 Events are rules over trajectories plus the calibrated scene geometry
@@ -135,8 +171,37 @@ max-aggregated and smoothed by a single asymmetric EMA. The harness calls
 between, so the expensive detection runs ~10x/s rather than ~30x/s. There is
 deliberately no max-hold/peak-extension stage: `evaluate.py` counts a 0.2 s
 excursion above threshold as a full alarm, so a steep, honest ramp scores better
-than a delayed flat-topped one. Measured runtime is ≈1.85x real time against the
-3x budget on the documented T4 figures.
+than a delayed flat-topped one.
+
+### The 3x budget, measured
+
+Measured end to end through the organizers' own `run_submission.py` on the 4K
+sample `C3905` (127.6 s, 29.97 fps, 3840x2160) at `imgsz=800` on an RTX 3070 Ti:
+
+| | wall time | per observation |
+|---|---|---|
+| Part A (1275 observations) | 143.2 s | 0.112 s |
+| Part B (1276 observations) | 147.7 s | 0.116 s |
+| **total** | **290.8 s = 2.28x** real time | 0.114 s |
+
+Part B costs as much as Part A because both halves run their own detector at
+roughly the same rate, and a 4K decode (~50 ms/frame) is paid on top either way.
+2.28x against a 3x cap is 24% headroom — enough on this machine, not something to
+leave to a different card. So the budget guard is **on by default**:
+`src/config/budget.py` declares a per-device cost per observation
+(`SEC_PER_OBS`, `0.20` s for CUDA — deliberately ~1.7x the figure measured on a
+3070 Ti, because the graders' card is a different, slower class of GPU) and
+returns the coarsest stride that still fits 3x the duration. On the organizers'
+four samples at 29.97 fps it plans stride 4 for Part A and 7.5 Hz for Part B
+instead of stride 3 / 10 Hz, roughly a third less work in each half.
+
+Two properties keep that safe. The guard can only ever **increase** a stride or
+**lower** a rate, so it cannot silently upgrade quality; and it is a **pure
+function** of `(n_frames, fps, declared cost)` — it never reads a clock, so it
+cannot make the output depend on machine load. Set `TCV_BUDGET_GUARD=0` to
+freeze the sampling rate, or `TCV_SEC_PER_OBS` to re-declare the cost for a
+different device.
+
 
 **Determinism** is structural, not seed-based: there is no RNG anywhere in the
 inference path, and no per-video wall-clock or load-dependent decisions (the
