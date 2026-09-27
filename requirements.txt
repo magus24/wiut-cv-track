@@ -1,7 +1,7 @@
 # Reproducible dependencies for offline Linux GPU (CUDA 12.6) evaluation.
 #
 # Verified end-to-end: a clean venv built from this exact file passes the full
-# test suite (727 passed, 1 skipped) and the organizer's format validation.
+# test suite (728 passed, 1 skipped) and the organizer's format validation.
 #
 # Torch wheels come from the official PyTorch index, added with
 # --extra-index-url (NOT --index-url). A bare --index-url in a requirements

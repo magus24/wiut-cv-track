@@ -14,7 +14,7 @@ requirements.txt     <- fully pinned, including the CUDA torch build (see "Verif
 src/                 <- the implementation (pipeline, detection, tracking, scene, events, risk)
 scene_config.json    <- self-calibrated geometry for the fixed camera (all videos share it)
 weights/             <- yolo11x.pt (shipped) + download.sh (fallback)
-tests/               <- 728 tests, run with `python -m pytest tests -q`
+tests/               <- 729 tests, run with `python -m pytest tests -q`
 ```
 
 ## Quickstart
@@ -88,7 +88,7 @@ organizer's own format check.
 | `opencv-python` | `5.0.0.93` | see the note below |
 | `ultralytics` | `8.4.53` | provides YOLO11x + ByteTrack |
 
-Result: **727 passed, 1 skipped** (the skip needs a real sample video, which is
+Result: **728 passed, 1 skipped** (the skip needs a real sample video, which is
 not part of the submission), and
 `format: 1 video(s), 14 event(s), 0 error(s), 0 warning(s) -> VALID`.
 
@@ -192,3 +192,51 @@ accidents). Elimination score = 0.6·M + 0.25·Website + 0.15·Code.
 - For Part B, time-to-collision from tracks is a strong simple signal; calibrate
   so that 0.5 means "probably within 5 s". A flat 1.0 scores ≈ 0.
 - Print your runtime early; sampling every 2nd–5th frame is usually enough.
+
+## Website
+
+The team site (team, approach, EDA, results, event catalogue, report) lives in
+this repository's parent, under `website/`, with the FastAPI inference backend
+under `backend/`:
+
+```
+website/   Next.js 16 + React 19 + Tailwind 4   -> the public site
+backend/   FastAPI /api/analyze                 -> the live demo's real inference
+```
+
+`backend/` calls **this** package: `solution.detect_events` for Part A and
+`solution.RiskEstimator` for Part B, resolved through the `SOLUTION_ROOT`
+environment variable. It is not a re-implementation and not a replay of
+`predictions_samples.json`, so the demo exercises the submitted code. Set
+`SOLUTION_ROOT` to this directory when the backend is deployed elsewhere.
+
+## Datasets, licences and attribution
+
+**We trained no models.** Every parameter in this solution is either a
+hand-set threshold or comes from an off-the-shelf pretrained checkpoint, so
+there is no training set to license and no dataset-derived artifact in the
+repository. The development set consisted of the four 4K sample clips
+(`C3896`, `C3897`, `C3902`, `C3905`) supplied with the task, plus small
+self-generated synthetic fixtures for the unit tests.
+
+| Component | Origin | Licence |
+| --- | --- | --- |
+| `weights/yolo11x.pt` (YOLO11x) | Ultralytics, pretrained | AGPL-3.0 |
+| `ultralytics` (detector + tracker) | Ultralytics | AGPL-3.0 |
+| `torch` / `torchvision` | PyTorch | BSD-3-Clause |
+| `numpy` | NumPy | BSD-3-Clause |
+| `opencv-python` | OpenCV | Apache-2.0 |
+| Sample clips `C389*`/`C390*` | task organisers | provided with the task |
+| Everything under `src/`, `solution.py`, `website/`, `backend/` | this team | — |
+
+Ultralytics is distributed under **AGPL-3.0**, which is why the weight and the
+library are shipped rather than vendored, and why the pretrained COCO weights
+are redistributed unmodified with their licence intact. We are not affiliated
+with or endorsed by Ultralytics; the "YOLO" name and logo are theirs.
+
+COCO appears only indirectly, as the training data behind the pretrained
+Ultralytics checkpoint; its annotations are (c) Microsoft, licensed under
+CC BY 4.0. No COCO data is redistributed here.
+
+The organizers' `run_submission.py` and `evaluate.py` are included unmodified
+and belong to the task organizers.
