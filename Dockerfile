@@ -29,8 +29,35 @@ RUN pip install --no-cache-dir -r requirements-torch.txt \
 
 COPY . .
 
+# The weight is in Git LFS (109.3 MiB > GitHub's 100 MiB blob limit), so a
+# checkout made WITHOUT git-lfs holds a ~130-byte pointer in weights/yolo11x.pt.
+# COPY would faithfully copy that pointer into the image, the detector would
+# then fail to load, and every frame would come back empty - a valid-looking
+# submission that scores zero. This step is at build time, where the network is
+# available, so it can repair the damage instead of shipping it.
+#
+#   1. a real weight passes untouched;
+#   2. a pointer is re-downloaded and checksum-verified by download.sh;
+#   3. anything else that is not a real weight fails the build loudly, because
+#      a silently broken image is strictly worse than no image.
+RUN set -eu; \
+    w=weights/yolo11x.pt; \
+    if [ -f "$w" ] && [ "$(wc -c < "$w")" -lt 1048576 ] \
+       && head -c 40 "$w" | grep -q "git-lfs.github.com/spec"; then \
+      echo "GIT LFS POINTER detected in $w - fetching the real weights"; \
+      bash weights/download.sh; \
+    fi; \
+    sz=$(wc -c < "$w"); \
+    if [ "$sz" -ne 114636239 ]; then \
+      echo "FATAL: $w is $sz bytes, expected 114636239 (LFS pointer? partial clone? real download needed)" >&2; \
+      exit 1; \
+    fi; \
+    echo "weights/yolo11x.pt verified: $sz bytes"
+
 # Inference on the GPU. The 3070 Ti used for development is 8 GB, so nothing
 # here assumes more memory than that; imgsz stays at 800 for the same reason.
+# TCV_STRIDE is left at 3: src/config/budget.py plans stride 4 for these
+# lengths anyway, and it owns that decision so local and graded runs agree.
 ENV TCV_DEVICE=cuda:0 \
     TCV_IMGSZ=800 \
     TCV_STRIDE=3 \

@@ -71,12 +71,49 @@ same-class overlap are dropped by the harness and listed in its log.
 
 ### Weights
 
-`weights/yolo11x.pt` **is included in this package** (109 MB, well inside the
-5 GB cap), so the offline run needs no download step. `weights/download.sh`
-remains as a fallback and re-fetches the identical file from the Ultralytics
-release URL if the weight is ever missing.
+`weights/yolo11x.pt` **is included in this package** (114,636,239 bytes =
+109.3 MiB, well inside the 5 GB cap), so the offline run needs no download
+step — **but read the Git LFS note below first, because a plain clone without
+git-lfs silently produces a broken checkout.**
 
-Do not rely on `download.sh` at scoring time: grading has no internet, and a
+#### Git LFS — the one thing that will bite you
+
+GitHub refuses any file over 100 MiB (104,857,600 bytes) in a normal blob, and
+this weight is 109.3 MiB. It is therefore stored in **Git LFS**. The file
+content in the repository is a ~130-byte *pointer*, not the model:
+
+```
+version https://git-lfs.github.com/spec/v1
+oid sha256:7bc158aa95c0ebfdd87f70f01653c1131b93e92522dbe15c228bcd742e773a24
+size 114636239
+```
+
+A pointer is not a model. `torch.load` fails on it, and the consequence is the
+worst kind: **zero detections, empty event lists, `Score_A` = `Score_B` = 0, and
+`evaluate.py --validate-only` still says `VALID`**, because an empty event list
+is legal. Nothing crashes and nothing warns you.
+
+Two independent ways out, either is enough:
+
+```bash
+git lfs install          # BEFORE cloning, or: git lfs pull after cloning
+git clone <repo>
+ls -l weights/yolo11x.pt   # must be ~110 MB, not ~130 bytes
+```
+
+```bash
+bash weights/download.sh   # detects a pointer, re-downloads, verifies SHA-256
+```
+
+`weights/download.sh` treats a pointer exactly like a missing file, re-fetches
+from the Ultralytics release URL and verifies
+`sha256 7bc158aa95c0ebfdd87f70f01653c1131b93e92522dbe15c228bcd742e773a24` — the
+same digest as the shipped copy — so a corrupted download cannot pass silently
+either. Run it once, with internet, before the offline evaluation. The
+`Dockerfile` builds a normal (non-LFS) checkout, so it never depends on any of
+this.
+
+Do not rely on either path at scoring time: grading has no internet, and a
 missing weight file is a *silent* total loss — every frame returns zero
 detections, every video is submitted with an empty event list, `Score_A` and
 `Score_B` are both 0, and `evaluate.py --validate-only` still reports `VALID`
@@ -86,9 +123,10 @@ model cannot be loaded, and `Detector.preflight()` reports the problem directly.
 
 ## Verified environment
 
-Pinned to the versions this solution was actually developed and verified against,
-then checked the way the graders run it: a **clean virtualenv**, the full suite,
-and the organizer's own format check.
+Pinned to the versions this solution was developed and verified against. Every
+pin below was re-read from the live environment with
+`importlib.metadata.version(...)` and matches exactly, so the pins describe
+what actually ran rather than what was intended.
 
 | Package | Pin | Where | Note |
 |---|---|---|---|
@@ -98,10 +136,24 @@ and the organizer's own format check.
 | `opencv-python` | `5.0.0.93` | `requirements.txt` | see the note below |
 | `ultralytics` | `8.4.160` | `requirements.txt` | provides YOLO11x + ByteTrack |
 
-Python 3.12, verified on an RTX 3070 Ti (8 GB) locally and written against a
-T4-class 16 GB card. Result: **731 passed, 1 skipped** (the skip needs a real
-sample video, which is not part of the submission), and
+Python 3.12, on an RTX 3070 Ti (8 GB) — the only GPU this was actually run on.
+The budget arithmetic in `src/config/budget.py` is written against a slower
+T4-class 16 GB card, so the defaults are conservative there; that is an
+assumption about the grading hardware, not a measurement of it.
+
+Verified on the environment above: **731 passed, 1 skipped** (the skip needs a
+real sample video, which is not part of the submission), and
 `format: 1 video(s), 14 event(s), 0 error(s), 0 warning(s) -> VALID`.
+
+**What is *not* verified:** a from-scratch `pip install` of the two requirements
+files into an empty environment, and the `Dockerfile`. Both need the 2.5 GB CUDA
+torch download, and on this machine the default pip target path exceeds the
+Windows `MAX_PATH` limit (which is why torch is installed to `C:\pylibs` via
+`--target`). The split and the image are provided for the pre-evaluation online
+step; treat them as untested plumbing rather than as measured results. The one
+dependency fact that *is* mechanical: `weights/download.sh` verifies the weights
+against a pinned SHA-256, so a failed download cannot pass silently.
+
 
 ### Why torch is in a separate file
 
